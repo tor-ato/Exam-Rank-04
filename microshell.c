@@ -3,46 +3,34 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* Error handling functions */
-void	print_error(char *msg)
+void	perror(char *msg)
 {
-	/* Write error message character by character to stderr */
 	while (*msg)
-	{
-		write(2, msg, 1);
-		msg++;
-	}
+		write(2, msg++, 1);
 }
 
-void	exit_with_error(char *msg)
+void	perror_exit(char *msg)
 {
-	print_error(msg);
+	perror(msg);
 	exit(1);
 }
 
-/* Built-in command: cd */
-int	try_change_dir(char *path)
+int	xchdir(char *path)
 {
-	/* Attempt to change directory and handle errors */
-	if (chdir(path) < 0)
-	{
-		print_error("error: cd: cannot change directory to ");
-		print_error(path);
-		print_error("\n");
-		return (1);
-	}
-	return (0);
+	if (chdir(path) > -1)
+		return (0);
+	perror("error: cd: cannot change directory to ");
+	perror(path);
+	perror("\n");
+	return (1);
 }
 
 int	handle_cd(char **argv, int arg_count)
 {
-	/* Check if cd command has correct number of arguments */
-	if (arg_count != 2)
-	{
-		print_error("error: cd: bad arguments\n");
-		return (1);
-	}
-	return (try_change_dir(argv[1]));
+	if (arg_count == 2)
+		return (xchdir(argv[1]));
+	perror("error: cd: bad arguments\n");
+	return (1);
 }
 
 /* Pipe handling */
@@ -51,42 +39,35 @@ void	setup_pipe(int pipe_fd[2], int end)
 	/* end == 1: sets stdout to write end of pipe */
 	/* end == 0: sets stdin to read end of pipe */
 	if (dup2(pipe_fd[end], end) == -1)
-		exit_with_error("error: fatal\n");
+		perror_exit("error: fatal\n");
 	if (close(pipe_fd[0]) == -1 || close(pipe_fd[1]) == -1)
-		exit_with_error("error: fatal\n");
+		perror_exit("error: fatal\n");
 }
 
-/* Command execution */
-void	execute_command(char **argv, char **envp)
+void	xexecve(char **argv, char **envp)
 {
-	/* Try to execute the command */
 	execve(*argv, argv, envp);
-	/* If execve returns, it means the command failed */
-	print_error("error: cannot execute ");
-	print_error(*argv);
-	print_error("\n");
+	perror("error: cannot execute ");
+	perror(*argv);
+	perror("\n");
 	exit(1);
 }
 
-int	create_pipe(int pipe_fd[2])
+int	xpipe(int pipe_fd[2])
 {
-	/* Create a pipe and handle potential errors */
-	if (pipe(pipe_fd) == -1)
-	{
-		exit_with_error("error: fatal\n");
-		return (0);
-	}
-	return (1);
+	if (pipe(pipe_fd) == 0)
+		return (1);
+	perror_exit("error: fatal\n");
+	return (0);
 }
 
-int	create_process(void)
+int	xfork(void)
 {
 	int	pid;
 
-	/* Create a child process using fork */
 	pid = fork();
 	if (pid == -1)
-		exit_with_error("error: fatal\n");
+		perror_exit("error: fatal\n");
 	return (pid);
 }
 
@@ -99,12 +80,11 @@ int	exec(char **argv, int arg_count, char **envp)
 
 	/* Check if command includes a pipe operator */
 	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
-	/* Handle built-in cd command */
 	if (!has_pipe && !strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
-	if (has_pipe && !create_pipe(pipe_fd))
+	if (has_pipe && !xpipe(pipe_fd))
 		return (1);
-	pid = create_process();
+	pid = xfork();
 	if (pid == 0)
 	{
 		/* In child process */
@@ -114,7 +94,7 @@ int	exec(char **argv, int arg_count, char **envp)
 		/* Handle cd command in child process */
 		if (!strcmp(*argv, "cd"))
 			exit(handle_cd(argv, arg_count));
-		execute_command(argv, envp);
+		xexecve(argv, envp);
 	}
 	/* In parent process */
 	waitpid(pid, &status, 0);  /* Wait for child to finish */
