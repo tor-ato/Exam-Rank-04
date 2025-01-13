@@ -6,7 +6,7 @@
 void	perror(char *msg)
 {
 	while (*msg)
-		write(2, msg++, 1);
+		write(STDERR_FILENO, msg++, 1);
 }
 
 void	perror_exit(char *msg)
@@ -60,12 +60,9 @@ int	xfork(void)
 	return (pid);
 }
 
-/* Pipe handling */
-void	setup_pipe(int pipe_fd[2], int end)
+void	setup_pipe(int pipe_fd[2], int newfd)
 {
-	/* end == 1: sets stdout to write end of pipe */
-	/* end == 0: sets stdin to read end of pipe */
-	if (dup2(pipe_fd[end], end) == -1)
+	if (dup2(pipe_fd[newfd], newfd) == -1)
 		perror_exit("error: fatal\n");
 	if (close(pipe_fd[0]) == -1 || close(pipe_fd[1]) == -1)
 		perror_exit("error: fatal\n");
@@ -86,18 +83,16 @@ int	exec(char **argv, int arg_count, char **envp)
 	pid = xfork();
 	if (pid == 0)
 	{
-		argv[arg_count] = 0;  /* Null terminate array at pipe operator */
-		if (has_pipe)
-			setup_pipe(pipe_fd, 1);  /* Setup write end of pipe */
-		/* Handle cd command in child process */
 		if (!strcmp(*argv, "cd"))
 			exit(handle_cd(argv, arg_count));
+		if (has_pipe)
+			setup_pipe(pipe_fd, STDOUT_FILENO);
+		argv[arg_count] = 0;
 		xexecve(argv, envp);
 	}
-	/* In parent process */
-	waitpid(pid, &status, 0);  /* Wait for child to finish */
+	waitpid(pid, &status, 0);
 	if (has_pipe)
-		setup_pipe(pipe_fd, 0);
+		setup_pipe(pipe_fd, STDIN_FILENO);
 	return (WIFEXITED(status) && WEXITSTATUS(status));
 }
 
