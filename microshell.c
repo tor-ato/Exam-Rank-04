@@ -33,17 +33,6 @@ int	handle_cd(char **argv, int arg_count)
 	return (1);
 }
 
-/* Pipe handling */
-void	setup_pipe(int pipe_fd[2], int end)
-{
-	/* end == 1: sets stdout to write end of pipe */
-	/* end == 0: sets stdin to read end of pipe */
-	if (dup2(pipe_fd[end], end) == -1)
-		perror_exit("error: fatal\n");
-	if (close(pipe_fd[0]) == -1 || close(pipe_fd[1]) == -1)
-		perror_exit("error: fatal\n");
-}
-
 void	xexecve(char **argv, char **envp)
 {
 	execve(*argv, argv, envp);
@@ -69,6 +58,17 @@ int	xfork(void)
 	if (pid == -1)
 		perror_exit("error: fatal\n");
 	return (pid);
+}
+
+/* Pipe handling */
+void	setup_pipe(int pipe_fd[2], int end)
+{
+	/* end == 1: sets stdout to write end of pipe */
+	/* end == 0: sets stdin to read end of pipe */
+	if (dup2(pipe_fd[end], end) == -1)
+		perror_exit("error: fatal\n");
+	if (close(pipe_fd[0]) == -1 || close(pipe_fd[1]) == -1)
+		perror_exit("error: fatal\n");
 }
 
 int	exec(char **argv, int arg_count, char **envp)
@@ -113,13 +113,10 @@ int	main(int argc, char **argv, char **envp)
 	status = 0;
 	while (argv[i])
 	{
-		/* Move pointer to next argument after last delimiter */
 		argv += i + 1;
 		i = 0;
-		/* Count arguments until next delimiter (| or ;) */
 		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
 			i++;
-		/* Execute command if arguments exist */
 		if (i)
 			status = exec(argv, i, envp);
 	}
