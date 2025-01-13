@@ -78,7 +78,6 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	/* Check if command includes a pipe operator */
 	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
 	if (!has_pipe && !strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
@@ -87,7 +86,6 @@ int	exec(char **argv, int arg_count, char **envp)
 	pid = xfork();
 	if (pid == 0)
 	{
-		/* In child process */
 		argv[arg_count] = 0;  /* Null terminate array at pipe operator */
 		if (has_pipe)
 			setup_pipe(pipe_fd, 1);  /* Setup write end of pipe */
@@ -99,7 +97,7 @@ int	exec(char **argv, int arg_count, char **envp)
 	/* In parent process */
 	waitpid(pid, &status, 0);  /* Wait for child to finish */
 	if (has_pipe)
-		setup_pipe(pipe_fd, 0);  /* Setup read end of pipe */
+		setup_pipe(pipe_fd, 0);
 	return (WIFEXITED(status) && WEXITSTATUS(status));
 }
 
