@@ -98,20 +98,20 @@ int	exec(char **argv, int arg_count, char **envp)
 
 int	main(int argc, char **argv, char **envp)
 {
-	int	i;
+	int	arg_count;
 	int	status;
 
 	(void)argc;
-	i = 0;
+	arg_count = 0;
 	status = 0;
-	while (argv[i])
+	while (argv[arg_count])
 	{
-		argv += i + 1;
-		i = 0;
-		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
-			i++;
-		if (i)
-			status = exec(argv, i, envp);
+		argv += arg_count + 1;
+		arg_count = 0;
+		while (argv[arg_count] && strcmp(argv[arg_count], "|") && strcmp(argv[arg_count], ";"))
+			arg_count++;
+		if (arg_count)
+			status = exec(argv, arg_count, envp);
 	}
 	return (status);
 }
