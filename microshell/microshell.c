@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 void	perror(char *msg)
 {
@@ -73,9 +74,10 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
-	if (!has_pipe && !strcmp(*argv, "cd"))
+	if (!strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
+	if (!strcmp(argv[arg_count], "|"))
+		has_pipe = true;
 	if (has_pipe)
 		xpipe(pipe_fd);
 	pid = xfork();
