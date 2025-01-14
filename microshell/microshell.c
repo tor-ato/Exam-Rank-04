@@ -2,7 +2,6 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdbool.h>
 
 void	perror(char *msg)
 {
@@ -39,14 +38,16 @@ void	xexecve(char **argv, char **envp)
 	execve(*argv, argv, envp);
 	perror("error: cannot execute ");
 	perror(*argv);
-	perror_exit("\n");
+	perror("\n");
+	exit(1);
 }
 
-void	xpipe(int pipe_fd[2])
+int	xpipe(int pipe_fd[2])
 {
 	if (pipe(pipe_fd) == 0)
-		return ;
+		return (1);
 	perror_exit("error: fatal\n");
+	return (0);
 }
 
 int	xfork(void)
@@ -74,15 +75,16 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	if (!strcmp(*argv, "cd"))
+	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
+	if (!has_pipe && !strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
-	if (!strcmp(argv[arg_count], "|"))
-		has_pipe = true;
-	if (has_pipe)
-		xpipe(pipe_fd);
+	if (has_pipe && !xpipe(pipe_fd))
+		return (1);
 	pid = xfork();
 	if (pid == 0)
 	{
+		if (!strcmp(*argv, "cd"))
+			exit(handle_cd(argv, arg_count));
 		if (has_pipe)
 			setup_pipe(pipe_fd, STDOUT_FILENO);
 		argv[arg_count] = 0;
@@ -96,20 +98,20 @@ int	exec(char **argv, int arg_count, char **envp)
 
 int	main(int argc, char **argv, char **envp)
 {
-	int	arg_count;
+	int	i;
 	int	status;
 
 	(void)argc;
-	arg_count = 0;
+	i = 0;
 	status = 0;
-	while (argv[arg_count])
+	while (argv[i])
 	{
-		argv += arg_count + 1;
-		arg_count = 0;
-		while (argv[arg_count] && strcmp(argv[arg_count], "|") && strcmp(argv[arg_count], ";"))
-			arg_count++;
-		if (arg_count)
-			status = exec(argv, arg_count, envp);
+		argv += i + 1;
+		i = 0;
+		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
+			i++;
+		if (i)
+			status = exec(argv, i, envp);
 	}
 	return (status);
 }
