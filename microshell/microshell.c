@@ -42,14 +42,6 @@ void	xexecve(char **argv, char **envp)
 	perror_exit("\n");
 }
 
-int	xpipe(int pipe_fd[2])
-{
-	if (pipe(pipe_fd) == 0)
-		return (1);
-	perror_exit("error: fatal\n");
-	return (0);
-}
-
 int	xfork(void)
 {
 	int	pid;
@@ -68,6 +60,13 @@ void	setup_pipe(int pipe_fd[2], int end)
 		perror_exit("error: fatal\n");
 }
 
+void	xpipe(int pipe_fd[2])
+{
+	if (pipe(pipe_fd) == 0)
+		return ;
+	perror_exit("error: fatal\n");
+}
+
 int	exec(char **argv, int arg_count, char **envp)
 {
 	int	has_pipe;
@@ -78,8 +77,7 @@ int	exec(char **argv, int arg_count, char **envp)
 	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
 	if (!strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
-	if (!xpipe(pipe_fd))
-		return (1);
+	xpipe(pipe_fd);
 	pid = xfork();
 	if (pid == 0)
 	{
