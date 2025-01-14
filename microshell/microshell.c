@@ -7,7 +7,7 @@
 void	perror(char *msg)
 {
 	while (*msg)
-		write(STDERR_FILENO, msg++, 1);
+		write(2, msg++, 1);
 }
 
 void	perror_exit(char *msg)
@@ -39,8 +39,7 @@ void	xexecve(char **argv, char **envp)
 	execve(*argv, argv, envp);
 	perror("error: cannot execute ");
 	perror(*argv);
-	perror("\n");
-	exit(1);
+	perror_exit("\n");
 }
 
 int	xpipe(int pipe_fd[2])
@@ -86,16 +85,14 @@ int	exec(char **argv, int arg_count, char **envp)
 	pid = xfork();
 	if (pid == 0)
 	{
-		if (!strcmp(*argv, "cd"))
-			exit(handle_cd(argv, arg_count));
 		if (has_pipe)
-			setup_pipe(pipe_fd, STDOUT_FILENO);
+			setup_pipe(pipe_fd, 1);
 		argv[arg_count] = 0;
 		xexecve(argv, envp);
 	}
 	waitpid(pid, &status, 0);
 	if (has_pipe)
-		setup_pipe(pipe_fd, STDIN_FILENO);
+		setup_pipe(pipe_fd, 0);
 	return (WIFEXITED(status) && WEXITSTATUS(status));
 }
 
