@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 void	perror(char *msg)
 {
@@ -60,9 +61,9 @@ int	xfork(void)
 	return (pid);
 }
 
-void	setup_pipe(int pipe_fd[2], int newfd)
+void	setup_pipe(int pipe_fd[2], int end)
 {
-	if (dup2(pipe_fd[newfd], newfd) == -1)
+	if (dup2(pipe_fd[end], end) == -1)
 		perror_exit("error: fatal\n");
 	if (close(pipe_fd[0]) == -1 || close(pipe_fd[1]) == -1)
 		perror_exit("error: fatal\n");
@@ -75,8 +76,10 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
-	if (!has_pipe && !strcmp(*argv, "cd"))
+	has_pipe = false;
+	if (argv[arg_count] &&  !strcmp(argv[arg_count], "|"))
+		has_pipe = true;
+	if (!strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
 	if (has_pipe && !xpipe(pipe_fd))
 		return (1);
@@ -115,3 +118,4 @@ int	main(int argc, char **argv, char **envp)
 	}
 	return (status);
 }
+
