@@ -74,7 +74,9 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
+	has_pipe = false;
+	if (argv[arg_count] && !strcmp(argv[arg_count], "|"))
+		has_pipe = true;
 	if (!strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
 	xpipe(pipe_fd);
