@@ -75,12 +75,10 @@ int	exec(char **argv, int arg_count, char **envp)
 	int	pid;
 	int	status;
 
-	has_pipe = false;
-	if (argv[arg_count] &&  !strcmp(argv[arg_count], "|"))
-		has_pipe = true;
+	has_pipe = argv[arg_count] && !strcmp(argv[arg_count], "|");
 	if (!strcmp(*argv, "cd"))
 		return (handle_cd(argv, arg_count));
-	if (has_pipe && !xpipe(pipe_fd))
+	if (!xpipe(pipe_fd))
 		return (1);
 	pid = xfork();
 	if (pid == 0)
