@@ -18,7 +18,7 @@ void	perror_exit(char *msg)
 
 int	xchdir(char *path)
 {
-	if (chdir(path) > -1)
+	if (chdir(path) == 0)
 		return (0);
 	perror("error: cd: cannot change directory to ");
 	perror(path);
