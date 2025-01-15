@@ -4,15 +4,15 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-void	perror(char *msg)
+void	perror(char *str)
 {
-	while (*msg)
-		write(2, msg++, 1);
+	while (*str)
+		write(2, str++, 1);
 }
 
-void	perror_exit(char *msg)
+void	perror_exit(char *str)
 {
-	perror(msg);
+	perror(str);
 	exit(1);
 }
 
@@ -26,19 +26,19 @@ int	xchdir(char *path)
 	return (1);
 }
 
-int	handle_cd(char **argv, int arg_count)
+int	handle_cd(char *pathname, int arg_count)
 {
 	if (arg_count == 2)
-		return (xchdir(argv[1]));
+		return (xchdir(pathname));
 	perror("error: cd: bad arguments\n");
 	return (1);
 }
 
-void	xexecve(char **argv, char **envp)
+void	xexecve(char *pathname, char **argv, char **envp)
 {
-	execve(*argv, argv, envp);
+	execve(pathname, argv, envp);
 	perror("error: cannot execute ");
-	perror(*argv);
+	perror(pathname);
 	perror_exit("\n");
 }
 
@@ -62,9 +62,8 @@ void	setup_pipe(int pipe_fd[2], int end)
 
 void	xpipe(int pipe_fd[2])
 {
-	if (pipe(pipe_fd) == 0)
-		return ;
-	perror_exit("error: fatal\n");
+	if (pipe(pipe_fd) == -1)
+		perror_exit("error: fatal\n");
 }
 
 int	exec(char **argv, int arg_count, char **envp)
@@ -78,15 +77,16 @@ int	exec(char **argv, int arg_count, char **envp)
 	if (argv[arg_count] && !strcmp(argv[arg_count], "|"))
 		has_pipe = true;
 	if (!strcmp(*argv, "cd"))
-		return (handle_cd(argv, arg_count));
-	xpipe(pipe_fd);
+		return (handle_cd(argv[1], arg_count));
+	if (has_pipe)
+		xpipe(pipe_fd);
 	pid = xfork();
 	if (pid == 0)
 	{
 		if (has_pipe)
 			setup_pipe(pipe_fd, 1);
 		argv[arg_count] = 0;
-		xexecve(argv, envp);
+		xexecve(*argv, argv, envp);
 	}
 	waitpid(pid, &status, 0);
 	if (has_pipe)
@@ -113,4 +113,3 @@ int	main(int argc, char **argv, char **envp)
 	}
 	return (status);
 }
-
